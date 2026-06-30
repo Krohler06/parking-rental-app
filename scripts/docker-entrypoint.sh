@@ -2,7 +2,7 @@
 set -e
 
 echo "Application parking : initialisation Prisma..."
-npx prisma db push
+npx prisma db push --skip-generate
 
 echo "Application parking : seed base de données..."
 npx prisma db seed || true

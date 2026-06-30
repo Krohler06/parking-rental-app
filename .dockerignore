@@ -1,13 +1,9 @@
 node_modules
 .next
 .git
-.gitignore
 .env
 .env.local
 .env.production
-Dockerfile
-docker-compose.yml
-README.md
 logs
 *.log
 coverage

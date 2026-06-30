@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Parking sécurisé",
+  title: "Gambetta Park",
   description: "Location mensuelle de places de parking sécurisées pour voitures et deux-roues."
 };
 

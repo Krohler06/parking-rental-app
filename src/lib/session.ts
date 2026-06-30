@@ -1,6 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const SESSION_COOKIE_NAME = "parking_admin_session";
+export const sessionCookieName = "parking_admin_session";
+
+export type AdminSessionPayload = {
+  adminId: string;
+  email: string;
+  name: string;
+};
 
 function getSecretKey() {
   const secret = process.env.SESSION_SECRET;
@@ -12,12 +18,6 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export type AdminSessionPayload = {
-  adminId: string;
-  email: string;
-  name: string;
-};
-
 export async function createSessionToken(payload: AdminSessionPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
@@ -28,8 +28,9 @@ export async function createSessionToken(payload: AdminSessionPayload) {
 
 export async function verifySessionToken(token: string) {
   const verified = await jwtVerify(token, getSecretKey());
-
   return verified.payload as unknown as AdminSessionPayload;
 }
 
-export const sessionCookieName = SESSION_COOKIE_NAME;
+export function shouldUseSecureCookie() {
+  return process.env.APP_URL?.startsWith("https://") === true;
+}

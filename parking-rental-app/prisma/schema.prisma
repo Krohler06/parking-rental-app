@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum SpotType {
+  CAR
+  MOTORCYCLE
+  BOTH
+}
+
+enum SpotStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+  INACTIVE
+}
+
+enum VehicleType {
+  CAR
+  MOTORCYCLE
+  OTHER
+}
+
+enum RentalStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+  PARTIAL
+  LATE
+}
+
+enum MessageStatus {
+  NEW
+  READ
+  ARCHIVED
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  auditLogs AdminAuditLog[]
+}
+
+model SiteSetting {
+  id           String   @id @default(cuid())
+  companyName  String
+  headline     String
+  description  String
+  address      String
+  phone        String
+  email        String
+  openingHours String?
+  facebookUrl  String?
+  instagramUrl String?
+  linkedinUrl  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String   @unique
+  description String
+  icon        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Pricing {
+  id           String      @id @default(cuid())
+  title        String      @unique
+  description  String?
+  vehicleType  VehicleType
+  priceMonthly Decimal     @db.Decimal(10, 2)
+  currency     String      @default("EUR")
+  isActive     Boolean     @default(true)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  status    MessageStatus @default(NEW)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ParkingFloor {
+  id          String   @id @default(cuid())
+  name        String
+  levelNumber Int      @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  spots ParkingSpot[]
+}
+
+model ParkingSpot {
+  id         String     @id @default(cuid())
+  floorId    String
+  spotNumber Int
+  label      String
+  spotType   SpotType   @default(BOTH)
+  status     SpotStatus @default(AVAILABLE)
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  floor   ParkingFloor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  rentals Rental[]
+
+  @@unique([floorId, spotNumber])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicles Vehicle[]
+  rentals  Rental[]
+}
+
+model VehicleBrand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  models   VehicleModel[]
+  vehicles Vehicle[]
+}
+
+model VehicleModel {
+  id          String      @id @default(cuid())
+  brandId     String
+  name        String
+  vehicleType VehicleType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  brand    VehicleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  vehicles Vehicle[]
+
+  @@unique([brandId, name])
+}
+
+model Vehicle {
+  id           String      @id @default(cuid())
+  customerId   String
+  brandId      String?
+  modelId      String?
+  customBrand  String?
+  customModel  String?
+  vehicleType  VehicleType
+  licensePlate String      @unique
+  color        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  customer Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  brand    VehicleBrand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  model    VehicleModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  rentals  Rental[]
+}
+
+model Rental {
+  id             String        @id @default(cuid())
+  parkingSpotId  String
+  customerId     String
+  vehicleId      String
+  amountMonthly  Decimal       @db.Decimal(10, 2)
+  durationMonths Int
+  entryDate      DateTime
+  exitDate       DateTime?
+  status         RentalStatus  @default(ACTIVE)
+  paymentStatus  PaymentStatus @default(UNPAID)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  parkingSpot ParkingSpot @relation(fields: [parkingSpotId], references: [id], onDelete: Restrict)
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicle     Vehicle     @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+}

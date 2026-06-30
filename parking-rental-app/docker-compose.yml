@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: parking_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-parking_rental}
+      POSTGRES_USER: ${POSTGRES_USER:-parking_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-moi}
+    volumes:
+      - parking_postgres_data:/var/lib/postgresql/data
+    networks:
+      - parking_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-parking_user} -d ${POSTGRES_DB:-parking_rental}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parking_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3020:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - parking_net
+
+volumes:
+  parking_postgres_data:
+
+networks:
+  parking_net:
+    driver: bridge
